@@ -1007,6 +1007,8 @@ class VirtualMachineSnapshotManagerWidget(object):
             pvc.widget.menu.MenuItem(
                 tag='Create',
                 description='Create Snapshot',
+                on_select=VirtualMachineSnapshotManagerCreateWidget,
+                on_select_args=(self.agent, self.dialog, self.obj),
             ),
             pvc.widget.menu.MenuItem(
                 tag='Revert',
@@ -1028,6 +1030,68 @@ class VirtualMachineSnapshotManagerWidget(object):
         )
 
         menu.display()
+
+class VirtualMachineSnapshotManagerCreateWidget(object):
+    def __init__(self, agent, dialog, obj):
+        """
+        Virtual Machine Snapshot Manager Widget
+
+        Args:
+            agent          (VConnector): A VConnector instance
+            dialog      (dialog.Dialog): A Dialog instance
+            obj    (vim.VirtualMachine): A VirtualMachine managed entity
+
+        """
+        self.agent = agent
+        self.dialog = dialog
+        self.obj = obj
+        self.title = '{} ({})'.format(self.obj.name, self.obj.__class__.__name__)
+        self.display()
+
+    def display(self):
+        form_text = (
+            'Create a new snapshot.\n'
+        )
+
+        elements = [
+            pvc.widget.form.FormElement(label='Name', item=''),
+            pvc.widget.form.FormElement(label='Description', item=''),
+            pvc.widget.form.FormElement(label='Include Memory', item='False'),
+            pvc.widget.form.FormElement(label='Quiesce', item='False'),
+        ]
+
+        form = pvc.widget.form.Form(
+            dialog=self.dialog,
+            form_elements=elements,
+            mixed_form=True,
+            title='Login Details',
+            text=form_text,
+        )
+
+        # code, snap_name = self.dialog.inputbox(
+        #     title=self.title,
+        #     text='Name for the new snapshot',
+        #     init=''
+        # )
+
+        code, fields = form.display()
+        snap_name = fields["Name"]
+        snap_desc = fields["Description"]
+        snap_mem = True if fields["Include Memory"].lower() in ["true", "yes"] else False
+        snap_quiece = True if fields["Quiesce"].lower() in ["true", "yes"] else False
+
+        if code in (self.dialog.CANCEL, self.dialog.ESC):
+            return
+
+        task = self.obj.CreateSnapshot(name=snap_name, description=snap_desc, memory=False, quiesce=True)
+        gauge = pvc.widget.gauge.TaskGauge(
+            dialog=self.dialog,
+            task=task,
+            title=self.title,
+            text='Creating snapshot {} ...'.format(snap_name)
+        )
+
+        gauge.display()
 
 
 class VirtualMachineSnapshotViewWidget(object):
