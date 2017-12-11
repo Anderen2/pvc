@@ -107,7 +107,7 @@ class EventCollector(threading.Thread):
             path                (str): Path where new events are appended to
 
         """
-        super().__init__()
+        super(EventCollector, self).__init__()
         self.daemon = True
         self.time_to_die = threading.Event()
 
